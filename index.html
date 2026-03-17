@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Road Racer — Fluid HQ · Lehi, UT</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #aed6f1; overflow: hidden; font-family: 'Courier New', monospace; }
+  canvas { display: block; }
+
+  #canvas-wrapper {
+    position: fixed; inset: 0;
+    box-shadow: inset 0 0 80px 20px rgba(0,0,0,0.38);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  #ui {
+    position: fixed; top: 16px; left: 16px;
+    color: #e0e0e0; font-size: 12px; line-height: 1.8;
+    background: rgba(0,0,0,0.6); padding: 10px 14px;
+    border-radius: 6px; border: 1px solid rgba(255,255,255,0.15);
+    pointer-events: none; min-width: 180px;
+    z-index: 10;
+  }
+  #ui h1 { font-size: 14px; color: #7ecfff; margin-bottom: 4px; letter-spacing: 1px; }
+  #ui .divider { border-color: rgba(255,255,255,0.15); margin: 4px 0; }
+  #ui .drift-indicator { color: #74b9ff; font-weight: bold; display: none; }
+  #ui .air-indicator   { color: #a29bfe; font-weight: bold; display: none; }
+
+  #goal-banner {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    font-size: 36px; font-weight: bold; color: #ffd700;
+    text-shadow: 0 2px 16px rgba(0,0,0,0.8);
+    letter-spacing: 4px; pointer-events: none;
+    display: none; z-index: 50;
+    background: rgba(0,0,0,0.55); padding: 16px 36px; border-radius: 10px;
+    border: 2px solid rgba(255,215,0,0.5);
+  }
+
+  #minimap {
+    position: fixed; bottom: 16px; right: 16px;
+    width: 150px; height: 150px;
+    background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 6px; overflow: hidden;
+    z-index: 10;
+  }
+  #minimap canvas { width: 100%; height: 100%; }
+
+  /* ══ TOUCH CONTROLS ══ */
+  #touch-controls {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: 240px;
+    pointer-events: none;
+    z-index: 40;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  #dpad {
+    position: absolute;
+    bottom: 24px; left: 24px;
+    width: 140px; height: 140px;
+    pointer-events: none;
+  }
+  .dpad-btn {
+    position: absolute;
+    width: 54px; height: 54px;
+    background: rgba(255,255,255,0.15);
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; color: rgba(255,255,255,0.7);
+    pointer-events: all;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.08s;
+  }
+  .dpad-btn:active, .dpad-btn.active {
+    background: rgba(255,255,255,0.35);
+    border-color: rgba(255,255,255,0.7);
+  }
+  #dpad-left  { left: 0;    top: 43px; }
+  #dpad-right { right: 0;   top: 43px; }
+  #dpad-up    { left: 43px; top: 0;    width: 54px; height: 44px; font-size: 16px; opacity: 0.45; pointer-events: none; }
+  #dpad-down  { left: 43px; bottom: 0; width: 54px; height: 44px; font-size: 16px; opacity: 0.45; pointer-events: none; }
+
+  #action-buttons {
+    position: absolute;
+    bottom: 24px; right: 186px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    pointer-events: none;
+  }
+  #btn-brake {
+    width: 72px; height: 44px;
+    background: rgba(231,76,60,0.55); border: 2px solid rgba(231,76,60,0.8);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: bold; color: #fff; letter-spacing: 1px;
+    pointer-events: all; touch-action: none;
+    -webkit-tap-highlight-color: transparent; transition: background 0.08s;
+  }
+  #btn-brake:active, #btn-brake.active { background: rgba(231,76,60,0.9); }
+
+  #btn-gas {
+    width: 88px; height: 88px;
+    background: rgba(39,174,96,0.55); border: 2px solid rgba(39,174,96,0.8);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: bold; color: #fff; letter-spacing: 1px;
+    pointer-events: all; touch-action: none;
+    -webkit-tap-highlight-color: transparent; transition: background 0.08s;
+  }
+  #btn-gas:active, #btn-gas.active { background: rgba(39,174,96,0.9); }
+
+  #btn-hop {
+    width: 68px; height: 44px;
+    background: rgba(155,89,182,0.55); border: 2px solid rgba(155,89,182,0.8);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: bold; color: #fff; letter-spacing: 1px;
+    pointer-events: all; touch-action: none;
+    -webkit-tap-highlight-color: transparent; transition: background 0.08s;
+  }
+  #btn-hop:active, #btn-hop.active { background: rgba(155,89,182,0.9); }
+</style>
+</head>
+<body>
+
+<div id="canvas-wrapper"></div>
+
+<div id="ui">
+  <h1>🚗 ROAD RACER</h1>
+  <div>Speed: <span id="spd">0</span> km/h</div>
+  <div id="drift-ind" class="drift-indicator">〰 DRIFTING</div>
+  <div id="air-ind"   class="air-indicator">🚀 AIRBORNE</div>
+  <hr class="divider">
+  <div style="font-size:11px;color:#aaa;">WASD — drive  X — hop</div>
+  <div style="font-size:11px;color:#aaa;">corner fast to drift</div>
+  <div style="font-size:11px;color:#aaa;">R — reset  +/- — zoom</div>
+  <div style="margin-top:6px;font-size:11px;color:#636e72;">I-15 → Fluid HQ · Lehi, UT</div>
+</div>
+
+<div id="goal-banner">YOU MADE IT! 🏁</div>
+
+<div id="traffic-countdown" style="
+  display: none;
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -60%);
+  font-size: 72px;
+  font-weight: 900;
+  font-family: 'Courier New', monospace;
+  color: #ffffff;
+  text-shadow: 0 0 30px rgba(255,60,60,0.9), 0 4px 20px rgba(0,0,0,0.9);
+  letter-spacing: 6px;
+  pointer-events: none;
+  z-index: 60;
+  background: rgba(0,0,0,0.65);
+  padding: 20px 48px;
+  border-radius: 14px;
+  border: 3px solid rgba(255,60,60,0.6);
+  text-align: center;
+  white-space: nowrap;
+"></div>
+
+<div id="minimap"><canvas id="mc"></canvas></div>
+
+<div id="touch-controls">
+  <div id="dpad">
+    <div class="dpad-btn" id="dpad-up">▲</div>
+    <div class="dpad-btn" id="dpad-left"  data-key="arrowleft">◀</div>
+    <div class="dpad-btn" id="dpad-right" data-key="arrowright">▶</div>
+    <div class="dpad-btn" id="dpad-down">▼</div>
+  </div>
+  <div id="action-buttons">
+    <div id="btn-hop">HOP</div>
+    <div id="btn-brake">BRAKE</div>
+    <div id="btn-gas">GAS</div>
+  </div>
+</div>
+
+<!-- CDN dependencies -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<!-- Game modules (plain scripts, no ES modules) -->
+<script src="road-system.js"></script>
+<script src="car.js"></script>
+<script src="main.js"></script>
+
+</body>
+</html>
